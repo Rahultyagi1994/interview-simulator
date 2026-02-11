@@ -3,7 +3,6 @@ import { cn } from '@/utils/cn';
 import { Timer } from './Timer';
 import type { Question } from '@/data/questions';
 import {
-  LightbulbIcon,
   CheckIcon,
   StarIcon,
   ArrowRightIcon,
@@ -26,9 +25,9 @@ export function QuestionCard({
   onNext,
   isLast
 }: QuestionCardProps) {
-  const [showTips, setShowTips] = useState(false);
   const [showSample, setShowSample] = useState(false);
   const [showFollowUp, setShowFollowUp] = useState(false);
+  const [showTips, setShowTips] = useState(false);
   const [userAnswer, setUserAnswer] = useState('');
   const [selfScore, setSelfScore] = useState(0);
   const [timeUp, setTimeUp] = useState(false);
@@ -45,12 +44,10 @@ export function QuestionCard({
     setTimeUp(true);
   }, []);
 
-  // Generate AI feedback based on answer
   const generateFeedback = (answer: string, sampleAnswer: string) => {
     const answerLower = answer.toLowerCase();
     const sampleLower = sampleAnswer.toLowerCase();
-    
-    // Extract key concepts from sample answer
+
     const keyPhrases = sampleLower
       .split(/[.,;!?]/)
       .filter(phrase => phrase.trim().length > 10)
@@ -60,50 +57,48 @@ export function QuestionCard({
       })
       .filter((phrase, index, self) => self.indexOf(phrase) === index)
       .slice(0, 6);
-    
-    const matched = keyPhrases.filter(phrase => 
-      answerLower.includes(phrase.split(' ')[0]) || 
+
+    const matched = keyPhrases.filter(phrase =>
+      answerLower.includes(phrase.split(' ')[0]) ||
       answerLower.includes(phrase.split(' ').slice(-1)[0])
     );
     const missed = keyPhrases.filter(phrase => !matched.includes(phrase));
-    
-    // Generate strengths based on answer quality
+
     const strengths: string[] = [];
     const improvements: string[] = [];
-    
+
     if (answer.length > 200) {
       strengths.push('Good level of detail in your response');
     } else {
       improvements.push('Try to provide more detailed examples');
     }
-    
+
     if (answer.includes('example') || answer.includes('instance') || answer.includes('specifically')) {
       strengths.push('Used specific examples to support your points');
     } else {
       improvements.push('Include specific examples from your experience');
     }
-    
+
     if (answer.includes('result') || answer.includes('outcome') || answer.includes('achieved') || answer.includes('impact')) {
       strengths.push('Mentioned results and outcomes');
     } else {
       improvements.push('Quantify results and impact where possible');
     }
-    
+
     if (answer.includes('team') || answer.includes('collaborated') || answer.includes('together')) {
       strengths.push('Demonstrated teamwork and collaboration');
     }
-    
+
     if (answer.includes('learned') || answer.includes('improved') || answer.includes('growth')) {
       strengths.push('Showed self-reflection and growth mindset');
     }
-    
+
     if (matched.length >= keyPhrases.length / 2) {
       strengths.push('Covered many key concepts expected in this answer');
     } else {
       improvements.push('Review the sample answer for additional key points');
     }
-    
-    // Overall assessment
+
     const score = (matched.length / Math.max(keyPhrases.length, 1)) * 100;
     let overall = '';
     if (score >= 70 && answer.length > 150) {
@@ -113,7 +108,7 @@ export function QuestionCard({
     } else {
       overall = 'Keep practicing! Focus on using the STAR method and providing specific examples.';
     }
-    
+
     return {
       strengths: strengths.length > 0 ? strengths : ['You attempted the question - keep practicing!'],
       improvements: improvements.slice(0, 3),
@@ -212,7 +207,7 @@ export function QuestionCard({
               </div>
             )}
 
-            {/* Self-scoring */}
+            {/* Self-scoring & Submit */}
             {!submitted && (
               <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <span className="text-sm text-slate-400">Rate your confidence:</span>
@@ -238,15 +233,15 @@ export function QuestionCard({
               </div>
             )}
 
-            {/* Post-submit */}
+            {/* Post-submit section */}
             {submitted && (
               <div className="mt-4 space-y-4">
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-sm">
                   <CheckIcon size={18} />
-                  Answer submitted! Review feedback and sample answer below.
+                  Answer submitted! Review your feedback below.
                 </div>
-                
-                {/* AI Feedback Section */}
+
+                {/* AI Feedback */}
                 {aiFeedback && (
                   <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 rounded-xl p-4 space-y-4">
                     <h4 className="text-sm font-semibold text-indigo-400 flex items-center gap-2">
@@ -256,8 +251,7 @@ export function QuestionCard({
                       </svg>
                       AI Feedback
                     </h4>
-                    
-                    {/* Strengths */}
+
                     <div>
                       <h5 className="text-xs font-medium text-emerald-400 mb-2">✓ Strengths</h5>
                       <ul className="space-y-1">
@@ -269,8 +263,7 @@ export function QuestionCard({
                         ))}
                       </ul>
                     </div>
-                    
-                    {/* Improvements */}
+
                     {aiFeedback.improvements.length > 0 && (
                       <div>
                         <h5 className="text-xs font-medium text-amber-400 mb-2">△ Areas to Improve</h5>
@@ -284,8 +277,7 @@ export function QuestionCard({
                         </ul>
                       </div>
                     )}
-                    
-                    {/* Keywords */}
+
                     <div className="flex flex-wrap gap-2">
                       {aiFeedback.keywordsMatched.map((k, i) => (
                         <span key={i} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded text-xs">
@@ -298,55 +290,59 @@ export function QuestionCard({
                         </span>
                       ))}
                     </div>
-                    
-                    {/* Overall */}
+
                     <div className="pt-2 border-t border-slate-700/50">
                       <p className="text-sm text-slate-300">{aiFeedback.overall}</p>
                     </div>
                   </div>
                 )}
-                
+
                 <button
                   onClick={handleNext}
                   className="w-full px-5 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25 group"
                 >
                   {isLast ? 'View Results' : 'Next Question'}
-                  <ArrowRightIcon size={18} className="group-hover:translate-x-1 transition-transform" />
+                  <ArrowRightIcon size={18} />
                 </button>
               </div>
             )}
           </div>
 
-          {/* Expandable sections */}
-          <div className="space-y-3">
-            {/* Tips */}
-            <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl overflow-hidden">
-              <button
-                onClick={() => setShowTips(!showTips)}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-slate-700/30 transition-colors"
-              >
-                <span className="flex items-center gap-2 text-sm font-medium text-amber-400">
-                  <LightbulbIcon size={18} />
-                  Interview Tips
-                </span>
-                <svg className={cn("w-5 h-5 text-slate-400 transition-transform", showTips && "rotate-180")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M6 9L12 15L18 9" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              {showTips && (
-                <div className="px-5 pb-4 space-y-2">
-                  {question.tips.map((tip, i) => (
-                    <div key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                      <span className="text-amber-400 mt-0.5">•</span>
-                      {tip}
+          {/* Expandable sections - ONLY AFTER SUBMISSION */}
+          {submitted && (
+            <div className="space-y-3">
+              {/* Tips - only after submission */}
+              {question.tips && (
+                <div className="bg-slate-800/60 border border-amber-500/30 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setShowTips(!showTips)}
+                    className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-slate-700/30 transition-colors bg-amber-500/10"
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium text-amber-400">
+                      <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 2a8 8 0 0 0-8 8c0 3.5 2 6 4 8l1 5h6l1-5c2-2 4-4.5 4-8a8 8 0 0 0-8-8z"/>
+                        <path d="M9 22h6"/>
+                      </svg>
+                      Interview Tips
+                    </span>
+                    <svg className={cn("w-5 h-5 text-slate-400 transition-transform", showTips && "rotate-180")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M6 9L12 15L18 9" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  {showTips && (
+                    <div className="px-5 pb-4 space-y-2">
+                      {question.tips.map((tip, i) => (
+                        <div key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                          <span className="text-amber-400 mt-0.5">•</span>
+                          {tip}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
-            </div>
 
-            {/* Sample Answer - Only shown AFTER submission */}
-            {submitted && (
+              {/* Sample Answer - only after submission */}
               <div className="bg-slate-800/60 border border-emerald-500/30 rounded-xl overflow-hidden">
                 <button
                   onClick={() => setShowSample(!showSample)}
@@ -366,11 +362,49 @@ export function QuestionCard({
                   </div>
                 )}
               </div>
-            )}
 
-            {/* Locked Sample Answer indicator - Before submission */}
-            {!submitted && (
-              <div className="bg-slate-800/40 border border-slate-700/40 rounded-xl overflow-hidden opacity-60">
+              {/* Follow-up - only after submission */}
+              <div className="bg-slate-800/60 border border-purple-500/30 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setShowFollowUp(!showFollowUp)}
+                  className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-slate-700/30 transition-colors bg-purple-500/10"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium text-purple-400">
+                    <ArrowRightIcon size={18} />
+                    Follow-up Question
+                  </span>
+                  <svg className={cn("w-5 h-5 text-slate-400 transition-transform", showFollowUp && "rotate-180")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 9L12 15L18 9" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                {showFollowUp && (
+                  <div className="px-5 pb-4">
+                    <p className="text-sm text-slate-300 leading-relaxed italic">&quot;{question.followUp}&quot;</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Locked indicators - BEFORE submission */}
+          {!submitted && (
+            <div className="space-y-3">
+              <div className="bg-slate-800/40 border border-slate-700/40 rounded-xl overflow-hidden opacity-50">
+                <div className="w-full flex items-center justify-between px-5 py-3.5 text-left cursor-not-allowed">
+                  <span className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                    <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    AI Feedback &amp; Tips (Submit to unlock)
+                  </span>
+                  <svg className="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </div>
+              </div>
+              <div className="bg-slate-800/40 border border-slate-700/40 rounded-xl overflow-hidden opacity-50">
                 <div className="w-full flex items-center justify-between px-5 py-3.5 text-left cursor-not-allowed">
                   <span className="flex items-center gap-2 text-sm font-medium text-slate-500">
                     <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -379,70 +413,25 @@ export function QuestionCard({
                     </svg>
                     Sample Answer (Submit to unlock)
                   </span>
-                  <svg className="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M6 9L12 15L18 9" strokeLinecap="round" strokeLinejoin="round"/>
+                  <svg className="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                   </svg>
                 </div>
               </div>
-            )}
-
-            {/* Follow-up */}
-            <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl overflow-hidden">
-              <button
-                onClick={() => setShowFollowUp(!showFollowUp)}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-slate-700/30 transition-colors"
-              >
-                <span className="flex items-center gap-2 text-sm font-medium text-purple-400">
-                  <ArrowRightIcon size={18} />
-                  Follow-up Question
-                </span>
-                <svg className={cn("w-5 h-5 text-slate-400 transition-transform", showFollowUp && "rotate-180")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M6 9L12 15L18 9" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              {showFollowUp && (
-                <div className="px-5 pb-4">
-                  <p className="text-sm text-slate-300 leading-relaxed italic">&quot;{question.followUp}&quot;</p>
-                </div>
-              )}
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Sidebar - Timer */}
+        {/* Sidebar - Timer only */}
         <div className="space-y-4">
           <div className="bg-slate-800/80 border border-slate-700/50 rounded-2xl p-5 flex flex-col items-center">
-            <h3 className="text-sm font-medium text-slate-400 mb-4">Time Limit</h3>
+            <h3 className="text-sm font-medium text-slate-400 mb-4">Time Remaining</h3>
             <Timer
               timeLimit={question.timeLimit}
               onTimeUp={handleTimeUp}
               isActive={!submitted}
             />
-          </div>
-
-          <div className="bg-slate-800/80 border border-slate-700/50 rounded-2xl p-5">
-            <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
-              <LightbulbIcon size={16} />
-              Quick Tips
-            </h3>
-            <ul className="space-y-2.5 text-xs text-slate-400">
-              <li className="flex items-start gap-2">
-                <span className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-bold shrink-0">1</span>
-                Take a moment to organize your thoughts
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-bold shrink-0">2</span>
-                Use the STAR method for behavioral questions
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-bold shrink-0">3</span>
-                Be specific with examples and data
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-bold shrink-0">4</span>
-                Practice speaking your answer aloud
-              </li>
-            </ul>
           </div>
         </div>
       </div>

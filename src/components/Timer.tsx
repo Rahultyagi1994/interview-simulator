@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Clock, Play, Pause, RotateCcw } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/utils/cn';
 
 interface TimerProps {
@@ -10,17 +9,14 @@ interface TimerProps {
 
 export function Timer({ timeLimit, onTimeUp, isActive }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState(timeLimit);
-  const [running, setRunning] = useState(true); // Auto-start timer
 
   useEffect(() => {
     setTimeLeft(timeLimit);
-    setRunning(true); // Auto-start when question changes
   }, [timeLimit]);
 
   useEffect(() => {
-    if (!running || !isActive) return;
+    if (!isActive) return;
     if (timeLeft <= 0) {
-      setRunning(false);
       onTimeUp();
       return;
     }
@@ -28,16 +24,7 @@ export function Timer({ timeLimit, onTimeUp, isActive }: TimerProps) {
       setTimeLeft(prev => prev - 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [running, timeLeft, isActive, onTimeUp]);
-
-  const reset = useCallback(() => {
-    setTimeLeft(timeLimit);
-    setRunning(false);
-  }, [timeLimit]);
-
-  const toggle = useCallback(() => {
-    setRunning(prev => !prev);
-  }, []);
+  }, [timeLeft, isActive, onTimeUp]);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -56,8 +43,8 @@ export function Timer({ timeLimit, onTimeUp, isActive }: TimerProps) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="relative w-28 h-28">
+    <div className="flex flex-col items-center">
+      <div className={cn("relative w-28 h-28", percentage <= 25 && "animate-pulse")}>
         <svg className="w-28 h-28 -rotate-90" viewBox="0 0 100 100">
           <circle
             cx="50" cy="50" r="42"
@@ -77,30 +64,17 @@ export function Timer({ timeLimit, onTimeUp, isActive }: TimerProps) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <Clock className={cn('w-4 h-4 mb-0.5', getColor())} />
+          <svg className={cn("w-4 h-4 mb-0.5", getColor())} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6V12L16 14" strokeLinecap="round"/>
+          </svg>
           <span className={cn('text-lg font-bold font-mono', getColor())}>
             {minutes}:{seconds.toString().padStart(2, '0')}
           </span>
         </div>
       </div>
-      <div className="flex gap-2">
-        <button
-          onClick={toggle}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium transition-colors"
-        >
-          {running ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-          {running ? 'Pause' : 'Resume'}
-        </button>
-        <button
-          onClick={reset}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium transition-colors"
-        >
-          <RotateCcw className="w-3 h-3" />
-          Reset
-        </button>
-      </div>
-      {running && (
-        <p className="text-xs text-slate-500 mt-1">Timer running...</p>
+      {percentage <= 25 && (
+        <p className="text-xs text-red-400 mt-2 animate-pulse">Time running out!</p>
       )}
     </div>
   );
