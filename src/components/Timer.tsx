@@ -10,11 +10,11 @@ interface TimerProps {
 
 export function Timer({ timeLimit, onTimeUp, isActive }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState(timeLimit);
-  const [running, setRunning] = useState(false);
+  const [running, setRunning] = useState(true); // Auto-start timer
 
   useEffect(() => {
     setTimeLeft(timeLimit);
-    setRunning(false);
+    setRunning(true); // Auto-start when question changes
   }, [timeLimit]);
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export function Timer({ timeLimit, onTimeUp, isActive }: TimerProps) {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium transition-colors"
         >
           {running ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-          {running ? 'Pause' : 'Start'}
+          {running ? 'Pause' : 'Resume'}
         </button>
         <button
           onClick={reset}
@@ -99,6 +99,9 @@ export function Timer({ timeLimit, onTimeUp, isActive }: TimerProps) {
           Reset
         </button>
       </div>
+      {running && (
+        <p className="text-xs text-slate-500 mt-1">Timer running...</p>
+      )}
     </div>
   );
 }

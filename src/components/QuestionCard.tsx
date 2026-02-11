@@ -33,13 +33,100 @@ export function QuestionCard({
   const [selfScore, setSelfScore] = useState(0);
   const [timeUp, setTimeUp] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<{
+    strengths: string[];
+    improvements: string[];
+    overall: string;
+    keywordsMatched: string[];
+    keywordsMissed: string[];
+  } | null>(null);
 
   const handleTimeUp = useCallback(() => {
     setTimeUp(true);
   }, []);
 
+  // Generate AI feedback based on answer
+  const generateFeedback = (answer: string, sampleAnswer: string) => {
+    const answerLower = answer.toLowerCase();
+    const sampleLower = sampleAnswer.toLowerCase();
+    
+    // Extract key concepts from sample answer
+    const keyPhrases = sampleLower
+      .split(/[.,;!?]/)
+      .filter(phrase => phrase.trim().length > 10)
+      .map(phrase => {
+        const words = phrase.trim().split(/\s+/);
+        return words.slice(0, 3).join(' ');
+      })
+      .filter((phrase, index, self) => self.indexOf(phrase) === index)
+      .slice(0, 6);
+    
+    const matched = keyPhrases.filter(phrase => 
+      answerLower.includes(phrase.split(' ')[0]) || 
+      answerLower.includes(phrase.split(' ').slice(-1)[0])
+    );
+    const missed = keyPhrases.filter(phrase => !matched.includes(phrase));
+    
+    // Generate strengths based on answer quality
+    const strengths: string[] = [];
+    const improvements: string[] = [];
+    
+    if (answer.length > 200) {
+      strengths.push('Good level of detail in your response');
+    } else {
+      improvements.push('Try to provide more detailed examples');
+    }
+    
+    if (answer.includes('example') || answer.includes('instance') || answer.includes('specifically')) {
+      strengths.push('Used specific examples to support your points');
+    } else {
+      improvements.push('Include specific examples from your experience');
+    }
+    
+    if (answer.includes('result') || answer.includes('outcome') || answer.includes('achieved') || answer.includes('impact')) {
+      strengths.push('Mentioned results and outcomes');
+    } else {
+      improvements.push('Quantify results and impact where possible');
+    }
+    
+    if (answer.includes('team') || answer.includes('collaborated') || answer.includes('together')) {
+      strengths.push('Demonstrated teamwork and collaboration');
+    }
+    
+    if (answer.includes('learned') || answer.includes('improved') || answer.includes('growth')) {
+      strengths.push('Showed self-reflection and growth mindset');
+    }
+    
+    if (matched.length >= keyPhrases.length / 2) {
+      strengths.push('Covered many key concepts expected in this answer');
+    } else {
+      improvements.push('Review the sample answer for additional key points');
+    }
+    
+    // Overall assessment
+    const score = (matched.length / Math.max(keyPhrases.length, 1)) * 100;
+    let overall = '';
+    if (score >= 70 && answer.length > 150) {
+      overall = 'Strong answer! You covered the main points well and provided good context.';
+    } else if (score >= 40 || answer.length > 100) {
+      overall = 'Good attempt! Consider expanding on your examples and covering additional aspects.';
+    } else {
+      overall = 'Keep practicing! Focus on using the STAR method and providing specific examples.';
+    }
+    
+    return {
+      strengths: strengths.length > 0 ? strengths : ['You attempted the question - keep practicing!'],
+      improvements: improvements.slice(0, 3),
+      overall,
+      keywordsMatched: matched.slice(0, 4),
+      keywordsMissed: missed.slice(0, 4)
+    };
+  };
+
   const handleSubmit = () => {
     setSubmitted(true);
+    const feedback = generateFeedback(userAnswer, question.sampleAnswer);
+    setAiFeedback(feedback);
   };
 
   const handleNext = () => {
@@ -153,11 +240,72 @@ export function QuestionCard({
 
             {/* Post-submit */}
             {submitted && (
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 space-y-4">
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-sm">
                   <CheckIcon size={18} />
-                  Answer submitted! Review the sample answer below to compare.
+                  Answer submitted! Review feedback and sample answer below.
                 </div>
+                
+                {/* AI Feedback Section */}
+                {aiFeedback && (
+                  <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 rounded-xl p-4 space-y-4">
+                    <h4 className="text-sm font-semibold text-indigo-400 flex items-center gap-2">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 2a8 8 0 0 0-8 8c0 3.5 2 6 4 8l1 5h6l1-5c2-2 4-4.5 4-8a8 8 0 0 0-8-8z"/>
+                        <path d="M9 22h6"/>
+                      </svg>
+                      AI Feedback
+                    </h4>
+                    
+                    {/* Strengths */}
+                    <div>
+                      <h5 className="text-xs font-medium text-emerald-400 mb-2">✓ Strengths</h5>
+                      <ul className="space-y-1">
+                        {aiFeedback.strengths.map((s, i) => (
+                          <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
+                            <span className="text-emerald-400 mt-0.5">•</span>
+                            {s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    {/* Improvements */}
+                    {aiFeedback.improvements.length > 0 && (
+                      <div>
+                        <h5 className="text-xs font-medium text-amber-400 mb-2">△ Areas to Improve</h5>
+                        <ul className="space-y-1">
+                          {aiFeedback.improvements.map((s, i) => (
+                            <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
+                              <span className="text-amber-400 mt-0.5">•</span>
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {/* Keywords */}
+                    <div className="flex flex-wrap gap-2">
+                      {aiFeedback.keywordsMatched.map((k, i) => (
+                        <span key={i} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded text-xs">
+                          ✓ {k}
+                        </span>
+                      ))}
+                      {aiFeedback.keywordsMissed.map((k, i) => (
+                        <span key={i} className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">
+                          ✗ {k}
+                        </span>
+                      ))}
+                    </div>
+                    
+                    {/* Overall */}
+                    <div className="pt-2 border-t border-slate-700/50">
+                      <p className="text-sm text-slate-300">{aiFeedback.overall}</p>
+                    </div>
+                  </div>
+                )}
+                
                 <button
                   onClick={handleNext}
                   className="w-full px-5 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25 group"
@@ -197,28 +345,46 @@ export function QuestionCard({
               )}
             </div>
 
-            {/* Sample Answer */}
-            <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl overflow-hidden">
-              <button
-                onClick={() => setShowSample(!showSample)}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-slate-700/30 transition-colors"
-              >
-                <span className="flex items-center gap-2 text-sm font-medium text-emerald-400">
-                  <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none">
-                    <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            {/* Sample Answer - Only shown AFTER submission */}
+            {submitted && (
+              <div className="bg-slate-800/60 border border-emerald-500/30 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setShowSample(!showSample)}
+                  className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-slate-700/30 transition-colors bg-emerald-500/10"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium text-emerald-400">
+                    <CheckIcon size={18} />
+                    Sample Answer (Compare with yours)
+                  </span>
+                  <svg className={cn("w-5 h-5 text-slate-400 transition-transform", showSample && "rotate-180")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 9L12 15L18 9" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  Sample Answer
-                </span>
-                <svg className={cn("w-5 h-5 text-slate-400 transition-transform", showSample && "rotate-180")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M6 9L12 15L18 9" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              {showSample && (
-                <div className="px-5 pb-4">
-                  <p className="text-sm text-slate-300 leading-relaxed">{question.sampleAnswer}</p>
+                </button>
+                {showSample && (
+                  <div className="px-5 pb-4">
+                    <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">{question.sampleAnswer}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Locked Sample Answer indicator - Before submission */}
+            {!submitted && (
+              <div className="bg-slate-800/40 border border-slate-700/40 rounded-xl overflow-hidden opacity-60">
+                <div className="w-full flex items-center justify-between px-5 py-3.5 text-left cursor-not-allowed">
+                  <span className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                    <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    Sample Answer (Submit to unlock)
+                  </span>
+                  <svg className="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 9L12 15L18 9" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Follow-up */}
             <div className="bg-slate-800/60 border border-slate-700/40 rounded-xl overflow-hidden">
